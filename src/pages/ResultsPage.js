@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { JobContext } from '../JobContext';
 
@@ -6,6 +7,15 @@ function ResultsPage() {
   const { jobData } = useContext(JobContext);
   const [coverLetter, setCoverLetter] = useState('');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const handleContinueToEmail = () => {
+    navigate('/email-info');
+  };
+
+  const handleGoToProfile = () => {
+    navigate('/profile');
+  };
 
   useEffect(() => {
     const generateCoverLetter = async () => {
@@ -34,6 +44,10 @@ function ResultsPage() {
     <div>
       <h1>Your Cover Letter</h1>
       <p>{coverLetter}</p>
+      <div>
+        <button onClick={handleContinueToEmail}>Continue to Email Info</button>
+        <button onClick={handleGoToProfile}>Go to Profile/Subscription Management</button>
+      </div>
     </div>
   );
 }
