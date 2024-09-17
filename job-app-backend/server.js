@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const fs = require('fs');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
 
 const app = express();
 app.use(cors());
@@ -9,52 +12,63 @@ app.use(express.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-app.post('/generate-cover-letter', async (req, res) => {
-    const { jobDescription, companyDetails, excitement } = req.body;
-  
-    // const prompt = `
-    //   Write a professional cover letter for the following job description:
-    //   Job Description: ${jobDescription}.
-    //   Company details: ${companyDetails}.
-    //   What excites me about the role: ${excitement}.
-    // `;
-  
-    // try {
-    //   const response = await axios.post(
-    //     'https://api.openai.com/v1/chat/completions',  // Chat API endpoint for gpt-4 or gpt-3.5-turbo
-    //     {
-    //       model: 'gpt-4o',  // Or 'gpt-3.5-turbo' if you want to use GPT-3.5
-    //       messages: [
-    //         { role: 'system', content: 'You are a helpful assistant that writes professional, personalized cover letters.' },
-    //         { role: 'user', content: prompt }
-    //       ],
-    //       max_tokens: 500,
-    //     },
-    //     {
-    //       headers: {
-    //         'Authorization': `Bearer ${OPENAI_API_KEY}`,
-    //         'Content-Type': 'application/json',
-    //       }
-    //     }
-    //   );
-      
-    //   res.json({ coverLetter: response.data.choices[0].message.content });
-    // } catch (error) {
-    //   console.error('Error generating cover letter:', error.response ? error.response.data : error.message);
-    //   res.status(500).json({ error: error.response ? error.response.data : error.message });
-    // }
+// Set up Multer for file uploads
+const upload = multer({ dest: 'uploads/' });
 
-    const placeholderCoverLetter = `
-    Dear Hiring Manager,
-    
-    I am excited to apply for this role and am confident that my experience aligns with your job description. I look forward to contributing to the company's success and growing professionally in this position.
-    
-    Sincerely,
-    Test User
-  `;
+app.post('/generate-cover-letter', upload.single('resume'), async (req, res) => {
+  const { jobDescription, companyDetails, excitement } = req.body;
 
-  res.json({ coverLetter: placeholderCoverLetter });
-  });
+  // Check if a file was uploaded
+  if (!req.file) {
+    return res.status(400).json({ error: 'No resume uploaded' });
+  }
+
+  // Extract text from the uploaded resume (PDF)
+  const resumePath = req.file.path;
+
+  try {
+    const resumeBuffer = fs.readFileSync(resumePath);
+    const resumeData = await pdfParse(resumeBuffer);
+    const resumeText = resumeData.text;  // Full resume text
+
+    // Use the full resume text in the OpenAI prompt for cover letter generation
+    const prompt = `
+      Write a professional cover letter for the following job description:
+      Job Description: ${jobDescription}.
+      Company details: ${companyDetails}.
+      What excites me about the role: ${excitement}.
+      Relevant experience from resume: ${resumeText}.
+    `;
+
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'You are a helpful assistant that writes professional, personalized cover letters.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 500,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+    // Clean up the uploaded resume file
+    fs.unlinkSync(resumePath);
+
+    // Send the generated cover letter as the response
+    res.json({ coverLetter: response.data.choices[0].message.content });
+
+  } catch (error) {
+    console.error('Error processing resume or generating cover letter:', error.message);
+    res.status(500).json({ error: 'Failed to process resume or generate cover letter' });
+  }
+});
 
 app.post('/generate-messages', async (req, res) => {
   const { recipientName, recipientTitle, recipientInfo, generateType } = req.body;
