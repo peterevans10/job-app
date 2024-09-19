@@ -6,6 +6,8 @@ import ResultsPage from './pages/ResultsPage';
 import EmailInfoPage from './pages/EmailInfoPage';
 import ProfilePage from './pages/ProfilePage'; // Assume this is the profile page
 import EmailResultsPage from './pages/EmailResultsPage';
+import CheckoutPage from './pages/CheckoutPage';
+import LoadingPage from './pages/LoadingPage';
 
 function App() {
   return (
@@ -17,7 +19,8 @@ function App() {
         <Route path="/email-info" element={<EmailInfoPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/email-results" element={<EmailResultsPage />} />
-        {/* Other routes */}
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/loading" element={<LoadingPage />} />
       </Routes>
     </Router>
   );

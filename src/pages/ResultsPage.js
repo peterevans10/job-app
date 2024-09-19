@@ -8,16 +8,25 @@ function ResultsPage() {
   const [coverLetter, setCoverLetter] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation(); // Get the cover letter if it's passed through location.state
-  
-  // Check if cover letter was passed from the previous page
+  const location = useLocation();
+
+  // Extract isPaid from query parameters
+  const queryParams = new URLSearchParams(location.search);
+  const isPaid = queryParams.get('isPaid');
+
   useEffect(() => {
+    if (isPaid !== 'true') {
+      // If not paid, redirect to the checkout page
+      navigate('/checkout');
+      return;
+    }
+
+    // Check if cover letter was passed from the previous page
     if (location.state && location.state.coverLetter) {
-      // If the cover letter is already passed from JobInfoPage, use it directly
       setCoverLetter(location.state.coverLetter);
       setLoading(false);
     } else {
-      // Only make the API call if the cover letter wasn't passed through location.state
+      // Generate the cover letter if it wasn't passed
       const generateCoverLetter = async () => {
         try {
           const formData = new FormData();
@@ -42,15 +51,7 @@ function ResultsPage() {
 
       generateCoverLetter();
     }
-  }, [jobData, location.state]);
-
-  const handleContinueToEmail = () => {
-    navigate('/email-info');
-  };
-
-  const handleGoToProfile = () => {
-    navigate('/profile');
-  };
+  }, [jobData, location.state, isPaid, navigate]);
 
   if (loading) {
     return <p>Generating your cover letter...</p>;
@@ -61,8 +62,8 @@ function ResultsPage() {
       <h1>Your Cover Letter</h1>
       <p>{coverLetter}</p>
       <div>
-        <button onClick={handleContinueToEmail}>Continue to Email Info</button>
-        <button onClick={handleGoToProfile}>Go to Profile/Subscription Management</button>
+        <button onClick={() => navigate('/email-info')}>Continue to Email Info</button>
+        <button onClick={() => navigate('/profile')}>Go to Profile/Subscription Management</button>
       </div>
     </div>
   );
